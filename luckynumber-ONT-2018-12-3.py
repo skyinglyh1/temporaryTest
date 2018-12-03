@@ -1176,9 +1176,17 @@ def withdraw(account):
     ontAmountToBeWithdrawn = Div(assetToBeWithdrawn, ONTAssumedMagnitude)
     assumedOntToBeWithdraw = Mul(ontAmountToBeWithdrawn, ONTAssumedMagnitude)
 
-    Require(ontAmountToBeWithdrawn > 0)
-    Require(transferONTFromContact(account, ontAmountToBeWithdrawn))
-
+    # Require(ontAmountToBeWithdrawn > 0)
+    if ontAmountToBeWithdrawn == 0:
+        # Not enought ONT to be withdrawn
+        Notify(["withdrawONTError", 1008])
+        return False
+    # Require(transferONTFromContact(account, ontAmountToBeWithdrawn))
+    res = transferONTFromContact(account, ontAmountToBeWithdrawn)
+    if res == False:
+        # please withdraw ONT later, or try again
+        Notify(["transerONTError", 1009])
+        return False
     # update the account balances of dividend, award, referral
     ontAmountNeedToBeDeduct = assumedOntToBeWithdraw
     if ontAmountNeedToBeDeduct >= dividendBalance:
