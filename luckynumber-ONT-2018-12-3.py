@@ -232,9 +232,9 @@ ONTAddress = bytearray(b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0
 ONGAddress = bytearray(b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02')
 ONTAssumedMagnitude = 1000000000
 ######################## LuckyNumber account
-Admin = ToScriptHash('AYqCVffRcbPkf1BVCYPJqqoiFTFmvwYKhG')
+# Admin = ToScriptHash('AYqCVffRcbPkf1BVCYPJqqoiFTFmvwYKhG')
 ######################## skyinglyh account
-# Admin = ToScriptHash('AQf4Mzu1YJrhz9f3aRkkwSm9n3qhXGSh4p')
+Admin = ToScriptHash('AQf4Mzu1YJrhz9f3aRkkwSm9n3qhXGSh4p')
 
 # Beijing time 2018-12-03-16:51:00
 # each round will last 3 minutes
@@ -1102,6 +1102,8 @@ def fillPaper(account, guessNumberList):
 
     # update fillPaperFromRound and the round paper balance
     fillPaperFromRound = getFillPaperFromRound(account)
+    if not fillPaperFromRound:
+        fillPaperFromRound = 1
     # if fillPaperFromRound == 0:
     #     paperBalanceBeforeUpgrade = getPaperBalanceBeforeUpgrade(account)
     #     if paperBalanceBeforeUpgrade> guessNumberLen:
