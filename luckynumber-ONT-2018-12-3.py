@@ -538,7 +538,7 @@ def addMultiReferral(args):
 
 def assignPaper(account, paperAmount):
     RequireWitness(Admin)
-
+    Require(getCurrentRound() > 0)
     updateDividendBalance(account)
 
     # update account's profit per paper from value
@@ -863,7 +863,7 @@ def buyPaper(account, paperAmount):
         return False
 
     currentRound = getCurrentRound()
-
+    Require(currentRound > 0)
     # Require(getGameStatus(currentRound) == STATUS_ON)
     if getGameStatus(currentRound) == STATUS_OFF:
         #  "Current round game status off!",
@@ -948,7 +948,7 @@ def reinvest(account, paperAmount):
         return False
 
     currentRound = getCurrentRound()
-
+    Require(currentRound > 0)
     # Require(getGameStatus(currentRound) == STATUS_ON)
     if getGameStatus(currentRound) == STATUS_OFF:
         # , "Current round game status off!"
@@ -1063,7 +1063,7 @@ def fillPaper(account, guessNumberList):
         return False
 
     currentRound = getCurrentRound()
-
+    Require(currentRound > 0)
     # Require(getGameStatus(currentRound) == STATUS_ON)
     if getGameStatus(currentRound) == STATUS_OFF:
         #  "Current round game status off!",
