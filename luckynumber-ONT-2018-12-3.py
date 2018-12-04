@@ -234,13 +234,13 @@ ONTAddress = bytearray(b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0
 ONGAddress = bytearray(b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02')
 ONTAssumedMagnitude = 1000000000
 ######################## LuckyNumber account
-# Admin = ToScriptHash('AYqCVffRcbPkf1BVCYPJqqoiFTFmvwYKhG')
+Admin = ToScriptHash('AYqCVffRcbPkf1BVCYPJqqoiFTFmvwYKhG')
 ######################## skyinglyh account
-Admin = ToScriptHash('AQf4Mzu1YJrhz9f3aRkkwSm9n3qhXGSh4p')
+# Admin = ToScriptHash('AQf4Mzu1YJrhz9f3aRkkwSm9n3qhXGSh4p')
 
-# Beijing time 2018-12-03-16:51:00
+# Beijing time 2018-12-04-14:54:00
 # each round will last 3 minutes
-StartTime = 1543827060
+StartTime = 1543906440
 RoundDurationMinutes = 3
 
 
@@ -634,9 +634,8 @@ def _updateFillPaperFromRoundAndAwardVault(account, fillPaperFromRound, fillPape
                     awardPercentageAtFill = getAwardAtFillPercentage(fillPaperFromRound)
                     awardVaultToBeAdd = Add(awardVaultToBeAdd, Div(Mul(Mul(roundPaperBalance, ONTAssumedMagnitude), awardPercentageAtFill), 100))
 
-                    fillPaperBalanceNeedtoUpdateLeft = Sub(fillPaperBalanceNeedtoUpdateLeft, roundPaperBalance)
                     # update round assign paper balance
-                    roundAssignPaperBalance = Sub(roundAssignPaperBalance, fillPaperBalanceNeedtoUpdateLeft)
+                    roundAssignPaperBalance = Sub(roundAssignPaperBalance, Sub(fillPaperBalanceNeedtoUpdateLeft, roundPaperBalance))
                     roundAssignPaperBalanceKey = concatKey(concatKey(ROUND_PREFIX, fillPaperFromRound), concatKey(ASSIGN_PAPER_BALANCE_ROUND_PREFIX, account))
                     if roundAssignPaperBalance > 0:
 
@@ -652,7 +651,7 @@ def _updateFillPaperFromRoundAndAwardVault(account, fillPaperFromRound, fillPape
 
                     # get award percentate at fill at fillPaperFromRound round
                     awardPercentageAtFill = getAwardAtFillPercentage(fillPaperFromRound)
-                    awardVaultToBeAdd = Add(awardVaultToBeAdd, Div(Mul(Mul(fillPaperBalanceNeedtoUpdateLeft, ONTAssumedMagnitude), awardPercentageAtFill), 100))
+                    awardVaultToBeAdd = Add(awardVaultToBeAdd, Div( Mul(Mul(fillPaperBalanceNeedtoUpdateLeft, ONTAssumedMagnitude), awardPercentageAtFill), 100))
 
                 # update fillPaperBalanceNeedtoUpdateLeft
                 fillPaperBalanceNeedtoUpdateLeft = 0
