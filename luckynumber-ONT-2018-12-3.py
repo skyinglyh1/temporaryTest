@@ -634,8 +634,9 @@ def _updateFillPaperFromRoundAndAwardVault(account, fillPaperFromRound, fillPape
                     awardPercentageAtFill = getAwardAtFillPercentage(fillPaperFromRound)
                     awardVaultToBeAdd = Add(awardVaultToBeAdd, Div(Mul(Mul(roundPaperBalance, ONTAssumedMagnitude), awardPercentageAtFill), 100))
 
+                    fillPaperBalanceNeedtoUpdateLeft = Sub(fillPaperBalanceNeedtoUpdateLeft, roundPaperBalance)
                     # update round assign paper balance
-                    roundAssignPaperBalance = Sub(roundAssignPaperBalance, Sub(fillPaperBalanceNeedtoUpdateLeft, roundPaperBalance))
+                    roundAssignPaperBalance = Sub(roundAssignPaperBalance, fillPaperBalanceNeedtoUpdateLeft)
                     roundAssignPaperBalanceKey = concatKey(concatKey(ROUND_PREFIX, fillPaperFromRound), concatKey(ASSIGN_PAPER_BALANCE_ROUND_PREFIX, account))
                     if roundAssignPaperBalance > 0:
 
@@ -651,7 +652,7 @@ def _updateFillPaperFromRoundAndAwardVault(account, fillPaperFromRound, fillPape
 
                     # get award percentate at fill at fillPaperFromRound round
                     awardPercentageAtFill = getAwardAtFillPercentage(fillPaperFromRound)
-                    awardVaultToBeAdd = Add(awardVaultToBeAdd, Div( Mul(Mul(fillPaperBalanceNeedtoUpdateLeft, ONTAssumedMagnitude), awardPercentageAtFill), 100))
+                    awardVaultToBeAdd = Add(awardVaultToBeAdd, Div(Mul(Mul(fillPaperBalanceNeedtoUpdateLeft, ONTAssumedMagnitude), awardPercentageAtFill), 100))
 
                 # update fillPaperBalanceNeedtoUpdateLeft
                 fillPaperBalanceNeedtoUpdateLeft = 0
