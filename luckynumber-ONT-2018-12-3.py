@@ -677,7 +677,7 @@ def addOntToCurrentRoundAwardVault(ontAmount):
     # update total ONT
     Put(GetContext(), TOTAL_ONT_KEY, Add(getTotalONTAmount(), assumedOntAmount))
 
-    Notify(["AddToAwardVault", Admin, ontAmount])
+    Notify(["AddToAwardVault",currentRound, ontAmount, GetTime()])
     return True
 
 def withdrawOng(toAcct):
