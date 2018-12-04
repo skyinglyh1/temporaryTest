@@ -379,6 +379,8 @@ def Main(operation, args):
             return False
         roundNum = args[0]
         return getParametersPercentage(roundNum)
+    if operation == "getTotalONTToBeAddAtFill":
+        return getTotalONTToBeAddAtFill()
     # if operation == "getPureAwardExcludeCommissionPercentage":
     #     return getPureAwardExcludeCommissionPercentage()
     # if operation == "getCommissionPercentage":
@@ -1224,8 +1226,7 @@ def withdraw(account):
             ontAmountNeedToBeDeduct = Sub(ontAmountNeedToBeDeduct, referralBalance)
             Delete(GetContext(), concatKey(REFERRAL_BALANCE_OF_PREFIX, account))
         else:
-            Put(GetContext(), concatKey(REFERRAL_BALANCE_OF_PREFIX, account),
-                Sub(referralBalance, ontAmountNeedToBeDeduct))
+            Put(GetContext(), concatKey(REFERRAL_BALANCE_OF_PREFIX, account), Sub(referralBalance, ontAmountNeedToBeDeduct))
             ontAmountNeedToBeDeduct = 0
     if ontAmountNeedToBeDeduct != 0:
         if ontAmountNeedToBeDeduct > awardBalance:
