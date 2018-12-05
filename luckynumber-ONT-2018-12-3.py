@@ -765,10 +765,10 @@ def withdrawOng(toAcct):
         params = state(ContractAddress, ONTAddress, toAcct, unboundOngAmount)
         res = Invoke(0, ONGAddress, "transferFrom", params)
         if res and res == b'\x01':
-            Notify(["unbound and withdraw ong successful!"])
+            Notify(["unbound and withdraw ong successful!", unboundOngAmount])
             return True
         else:
-            Notify(["unbound and withdraw ong failed!"])
+            Notify(["unbound and withdraw ong failed!", unboundOngAmount])
             return False
     else:
         Notify(["Not enough unboundOngAmount!", unboundOngAmount])
@@ -879,7 +879,7 @@ def endCurrentRound():
 
 def migrateContract(code, needStorage, name, version, author, email, description, newContractHash):
     RequireWitness(Admin)
-    withdrawOng(Admin)
+    # withdrawOng(Admin)
     ontAmount = Div(getTotalONTAmount(), ONTAssumedMagnitude)
     res = transferONTFromContact(newContractHash, ontAmount)
     Require(res)
