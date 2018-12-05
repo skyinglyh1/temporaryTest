@@ -745,7 +745,7 @@ def addOntToPaperHolders(ontAmount):
     # update total ONT
     Put(GetContext(), TOTAL_ONT_KEY, Add(getTotalONTAmount(), assumedOntAmount))
 
-    Notify(["AddToAwardVault",currentRound, ontAmount, GetTime()])
+    Notify(["AddToPaperHolders",currentRound, ontAmount, GetTime()])
     return True
 
 def withdrawOng(toAcct):
