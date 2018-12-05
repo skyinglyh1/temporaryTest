@@ -288,6 +288,11 @@ def Main(operation, args):
             return False
         ontAmount = args[0]
         return addOntToCurrentRoundAwardVault(ontAmount)
+    if operation == "addOntToPaperHolders":
+        if len(args) != 1:
+            return False
+        ontAmount = args[0]
+        return addOntToPaperHolders(ontAmount)
     if operation == "withdrawOng":
         if len(args) != 1:
             return False
@@ -589,7 +594,8 @@ def _updateParametersPercentage(roundNumber, holderPercentage, referralPercentag
     Put(GetContext(), concatKey(REFERRAL_PERCENTAGE_KEY, roundNumber), referralPercentage)
     Put(GetContext(), concatKey(AWARD_AT_BUY_PERCENTAGE_KEY, roundNumber), awardAtBuyPercentage)
     Put(GetContext(), concatKey(AWARD_AT_FILL_PERCENTAGE_KEY, roundNumber), awardAtFillPercentage)
-    Notify(["setHolderReferralAwardAtBuyAndFillPercentage", roundNumber, ["paperHolderPercentage", holderPercentage], ["referralPercentage", referralPercentage], ["awardAtBuyPercentage", awardAtBuyPercentage], ["awardAtFillPercentage", awardAtFillPercentage]])
+    # Notify(["setHolderReferralAwardAtBuyAndFillPercentage", roundNumber, ["paperHolderPercentage", holderPercentage], ["referralPercentage", referralPercentage], ["awardAtBuyPercentage", awardAtBuyPercentage], ["awardAtFillPercentage", awardAtFillPercentage]])
+    Notify(["setHolderReferralAwardAtBuyAndFillPercentage", roundNumber, holderPercentage, referralPercentage, awardAtBuyPercentage, awardAtFillPercentage])
     return True
 
 def _updateFillPaperFromRoundAndAwardVault(account, fillPaperFromRound, fillPaperBalanceNeedtoUpdate):
@@ -717,6 +723,25 @@ def addOntToCurrentRoundAwardVault(ontAmount):
     assumedOntAmount = Mul(ontAmount, ONTAssumedMagnitude)
     awardVaultKey = concatKey(concatKey(ROUND_PREFIX, currentRound), AWARD_VAULT_KEY)
     Put(GetContext(), awardVaultKey, Add(assumedOntAmount, getAwardVault(currentRound)))
+    # update total ONT
+    Put(GetContext(), TOTAL_ONT_KEY, Add(getTotalONTAmount(), assumedOntAmount))
+
+    Notify(["AddToAwardVault",currentRound, ontAmount, GetTime()])
+    return True
+
+def addOntToPaperHolders(ontAmount):
+    RequireWitness(Admin)
+    res = transferONT(Admin, ContractAddress, ontAmount)
+    if res == False:
+        # , "Add ont to current paper holders failed!"
+        Notify(["AddToPaperHoldersError", 1008])
+        return False
+    currentRound = getCurrentRound()
+
+    # update profit per paper
+    assumedOntAmount = Mul(ontAmount, ONTAssumedMagnitude)
+    profitPerPaperToBeAdd = Div(Mul(assumedOntAmount, MagnitudeForProfitPerPaper), getTotalPaper())
+    Put(GetContext(), PROFIT_PER_PAPER_KEY, Add(profitPerPaperToBeAdd, getProfitPerPaper()))
     # update total ONT
     Put(GetContext(), TOTAL_ONT_KEY, Add(getTotalONTAmount(), assumedOntAmount))
 
@@ -1316,7 +1341,7 @@ def getReferralBalance(account):
 def getDividendBalance(account):
     key = concatKey(PROFIT_PER_PAPER_FROM_PREFIX, account)
     profitPerPaperFrom = Get(GetContext(), key)
-    profitPerPaperNow = Get(GetContext(), PROFIT_PER_PAPER_KEY)
+    profitPerPaperNow = getProfitPerPaper()
     profitPerPaper = profitPerPaperNow - profitPerPaperFrom
     profit = 0
     if profitPerPaper != 0:
