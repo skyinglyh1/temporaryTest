@@ -11,7 +11,7 @@ from boa.builtins import ToScriptHash, concat, state
 
 
 """
-https://github.com/tonyclarking/python-template/blob/master/libs/Utils.py
+https://github.com/ONT-Avocados/python-template/blob/master/libs/Utils.py
 """
 def Revert():
     """
@@ -23,7 +23,7 @@ def Revert():
 
 
 """
-https://github.com/tonyclarking/python-template/blob/master/libs/SafeCheck.py
+https://github.com/ONT-Avocados/python-template/blob/master/libs/SafeCheck.py
 """
 def Require(condition):
     """
@@ -55,7 +55,7 @@ def RequireWitness(witness):
     Require(CheckWitness(witness))
     return True
 """
-SafeMath 
+https://github.com/ONT-Avocados/python-template/blob/master/libs/SafeMath.py
 """
 
 def Add(a, b):
