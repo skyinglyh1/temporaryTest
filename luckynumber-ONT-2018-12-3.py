@@ -595,7 +595,7 @@ def _updateParametersPercentage(roundNumber, holderPercentage, referralPercentag
     Put(GetContext(), concatKey(AWARD_AT_BUY_PERCENTAGE_KEY, roundNumber), awardAtBuyPercentage)
     Put(GetContext(), concatKey(AWARD_AT_FILL_PERCENTAGE_KEY, roundNumber), awardAtFillPercentage)
     # Notify(["setHolderReferralAwardAtBuyAndFillPercentage", roundNumber, ["paperHolderPercentage", holderPercentage], ["referralPercentage", referralPercentage], ["awardAtBuyPercentage", awardAtBuyPercentage], ["awardAtFillPercentage", awardAtFillPercentage]])
-    Notify(["setHolderReferralAwardAtBuyAndFillPercentage", roundNumber, holderPercentage, referralPercentage, awardAtBuyPercentage, awardAtFillPercentage])
+    Notify(["setHolderReferralAwardAtBuyAndFillPercentage", roundNumber, holderPercentage, referralPercentage, awardAtBuyPercentage, awardAtFillPercentage, GetTime()])
     return True
 
 def _updateFillPaperFromRoundAndAwardVault(account, fillPaperFromRound, fillPaperBalanceNeedtoUpdate):
@@ -692,24 +692,33 @@ def withdrawGas():
     :return:
     """
     RequireWitness(Admin)
-
-    Require(transferONTFromContact(Admin, getGasVault()))
+    gasVault = getGasVault()
+    gasToBeWithdraw = Div(gasVault, ONTAssumedMagnitude)
+    assumedGasToBeWithdraw = Mul(gasToBeWithdraw, ONTAssumedMagnitude)
+    Require(transferONTFromContact(Admin, gasToBeWithdraw))
 
     # update total ong amount
-    Put(GetContext(), TOTAL_ONT_KEY, Sub(getTotalONTAmount(), getGasVault()))
-    Delete(GetContext(), GAS_VAULT_KEY)
+    Put(GetContext(), TOTAL_ONT_KEY, Sub(getTotalONTAmount(), assumedGasToBeWithdraw))
+    # update gas vault
+    Put(GetContext(), GAS_VAULT_KEY, Sub(gasVault, assumedGasToBeWithdraw))
+
+    Notify(["withdrawGas", gasToBeWithdraw, GetTime()])
     return True
 
 
 def withdrawCommission():
     RequireWitness(Admin)
-
-    Require(transferONTFromContact(Admin, getCommissionAmount()))
+    commission = getCommissionAmount()
+    commissionToBeWithdraw = Div(getCommissionAmount(), ONTAssumedMagnitude)
+    assumedCommissionToBeWithdraw = Mul(commissionToBeWithdraw, ONTAssumedMagnitude)
+    Require(transferONTFromContact(Admin, commissionToBeWithdraw))
 
     # update total ong amount
-    Put(GetContext(), TOTAL_ONT_KEY, Sub(getTotalONTAmount(), getCommissionAmount()))
-    Delete(GetContext(), COMMISSION_KEY)
+    Put(GetContext(), TOTAL_ONT_KEY, Sub(getTotalONTAmount(), assumedCommissionToBeWithdraw))
+    # update commission
+    Put(GetContext(), COMMISSION_KEY, Sub(commission, assumedCommissionToBeWithdraw))
 
+    Notify(["withdarwCommission", commissionToBeWithdraw, GetTime()])
     return True
 
 def addOntToCurrentRoundAwardVault(ontAmount):
@@ -753,14 +762,13 @@ def withdrawOng(toAcct):
     param = state(ONTAddress, ContractAddress)
     unboundOngAmount = Invoke(0, ONGAddress, 'allowance', param)
     if unboundOngAmount > 0:
-        unboundOngAmount = 147
         params = state(ContractAddress, ONTAddress, toAcct, unboundOngAmount)
         res = Invoke(0, ONGAddress, "transferFrom", params)
         if res and res == b'\x01':
-            Notify(["withdraw ong successful!"])
+            Notify(["unbound and withdraw ong successful!"])
             return True
         else:
-            Notify(["withdraw ong failed!"])
+            Notify(["unbound and withdraw ong failed!"])
             return False
     else:
         Notify(["Not enough unboundOngAmount!", unboundOngAmount])
