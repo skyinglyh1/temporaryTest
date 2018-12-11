@@ -169,6 +169,7 @@ PROFIT_PER_PAPER_FROM_PREFIX = "G12"
 FILL_PAPER_FROM_ROUND_PREFIX = "G13"
 # PAPER_BALANCE_PREFIX + account -- store the current blank paper amount of account after contract upgrade
 PAPER_BALANCE_BEFORE_UPGRADE_PREFIX = "G14"
+NEW_PAPER_BALANCE_PREFIX = "15"
 ################## Round i User info ##################
 # ROUND_PREFIX + CURRET_ROUND_NUM_KEY + FILLED_PAPER_BALANCE_PREFIX + account -- store the filled paper amount in round i
 FILLED_PAPER_BALANCE_PREFIX = "U01"
@@ -536,7 +537,7 @@ def assignPaper(account, paperAmount):
     Put(GetContext(), assignPaperBalanceKey, Add(getRoundAssignPaperBalance(account, currentRound), paperAmount))
 
     # update account paper balance
-    balanceKey = concatKey(PAPER_BALANCE_PREFIX, account)
+    balanceKey = concatKey(NEW_PAPER_BALANCE_PREFIX, account)
     Put(GetContext(), balanceKey, Add(paperAmount, getPaperBalance(account)))
 
     # update total paper amount
@@ -908,12 +909,13 @@ def buyPaper(account, paperAmount):
 
     updateDividendBalance(account)
 
-    if not getPaperBalanceBeforeUpgrade(account):
-        # record the paper balance before contract upgrades
-        Put(GetContext(), concatKey(PAPER_BALANCE_BEFORE_UPGRADE_PREFIX, account), getPaperBalance(account))
+    # if not getPaperBalanceBeforeUpgrade(account):
+    #     # record the paper balance before contract upgrades
+    #     Put(GetContext(), concatKey(PAPER_BALANCE_BEFORE_UPGRADE_PREFIX, account), getPaperBalance(account))
 
     # update paper balance of account
-    Put(GetContext(), concatKey(PAPER_BALANCE_PREFIX, account), Add(paperAmount, getPaperBalance(account)))
+    newPaperBalance = Get(GetContext(), concatKey(NEW_PAPER_BALANCE_PREFIX, account))
+    Put(GetContext(), concatKey(NEW_PAPER_BALANCE_PREFIX, account), Add(paperAmount, newPaperBalance))
 
     # update total paper amount
     Put(GetContext(), TOTAL_PAPER_KEY, Add(paperAmount, getTotalPaper()))
@@ -1008,12 +1010,13 @@ def reinvest(account, paperAmount):
 
     updateDividendBalance(account)
 
-    if not getPaperBalanceBeforeUpgrade(account):
-        # record the paper balance before contract upgrades
-        Put(GetContext(), concatKey(PAPER_BALANCE_BEFORE_UPGRADE_PREFIX, account), getPaperBalance(account))
+    # if not getPaperBalanceBeforeUpgrade(account):
+    #     # record the paper balance before contract upgrades
+    #     Put(GetContext(), concatKey(PAPER_BALANCE_BEFORE_UPGRADE_PREFIX, account), getPaperBalance(account))
 
     # update paper balance of account
-    Put(GetContext(), concatKey(PAPER_BALANCE_PREFIX, account), Add(paperAmount, getPaperBalance(account)))
+    newPaperBalance = Get(GetContext(), concatKey(NEW_PAPER_BALANCE_PREFIX, account))
+    Put(GetContext(), concatKey(NEW_PAPER_BALANCE_PREFIX, account), Add(paperAmount, newPaperBalance))
 
     # update total paper amount
     Put(GetContext(), TOTAL_PAPER_KEY, Add(paperAmount, getTotalPaper()))
@@ -1127,16 +1130,17 @@ def fillPaper(account, guessNumberList):
     # update fillPaperFromRound and the round paper balance
     fillPaperFromRound = getFillPaperFromRound(account)
     Notify(["111fillPaper", fillPaperFromRound, currentRound])
-    if not fillPaperFromRound:
-        paperBalanceBeforeUpgrade = getPaperBalanceBeforeUpgrade(account)
-        Notify(["222fillPaper", paperBalanceBeforeUpgrade, guessNumberLen])
-        if paperBalanceBeforeUpgrade> guessNumberLen:
-            Put(GetContext(), concatKey(PAPER_BALANCE_BEFORE_UPGRADE_PREFIX, account), Sub(paperBalanceBeforeUpgrade, guessNumberLen))
+    if fillPaperFromRound == 0:
+        oldPaperBalanceKey  = concatKey(PAPER_BALANCE_PREFIX, account)
+        oldPaperBalance = Get(GetContext(), oldPaperBalanceKey)
+        Notify(["222fillPaper", oldPaperBalance, guessNumberLen])
+        if oldPaperBalance> guessNumberLen:
+            Put(GetContext(), oldPaperBalanceKey, Sub(oldPaperBalance, guessNumberLen))
 
         else:
-            Put(GetContext(), concatKey(PAPER_BALANCE_BEFORE_UPGRADE_PREFIX, account), -1)
-            fillPaperBalanceNeedtoUpdate = Sub(guessNumberLen, paperBalanceBeforeUpgrade)
-            Notify(["333fillPaper",  fillPaperBalanceNeedtoUpdate])
+            Delete(GetContext(), oldPaperBalanceKey)
+            fillPaperBalanceNeedtoUpdate = Sub(guessNumberLen, oldPaperBalance)
+            Notify(["333fillPaper", fillPaperBalanceNeedtoUpdate])
             if fillPaperBalanceNeedtoUpdate > 0:
                 # update FillPaperFromRound and the account's round paper balance and awardVault
                 _updateFillPaperFromRoundAndAwardVault(account, 1, fillPaperBalanceNeedtoUpdate)
@@ -1152,8 +1156,8 @@ def fillPaper(account, guessNumberList):
         # update the awardVaultAtFill
         Put(GetContext(), TOTAL_ONG_TO_BE_ADD_AT_FILL_KEY, Sub(getTotalONGToBeAddAtFill(), awardVaultToBeAddAtFill))
 
-    # update the paper balance of account  -- destroy the filled papers
-    Put(GetContext(), concatKey(PAPER_BALANCE_PREFIX, account), Sub(currentPaperBalance, guessNumberLen))
+        # update the paper balance of account  -- destroy the filled papers
+        Put(GetContext(), concatKey(NEW_PAPER_BALANCE_PREFIX, account), Sub(currentPaperBalance, guessNumberLen))
 
     # update total paper amount
     Put(GetContext(), TOTAL_PAPER_KEY, Sub(getTotalPaper(), guessNumberLen))
@@ -1270,7 +1274,7 @@ def getFillPaperFromRound(account):
 
 ####################### User Info Start #####################
 def getPaperBalance(account):
-    return Get(GetContext(), concatKey(PAPER_BALANCE_PREFIX, account))
+    return Add(Get(GetContext(), concatKey(NEW_PAPER_BALANCE_PREFIX, account)), Get(GetContext(), concatKey(PAPER_BALANCE_PREFIX, account)))
 
 def getPaperBalanceBeforeUpgrade(account):
     return Get(GetContext(), concatKey(PAPER_BALANCE_BEFORE_UPGRADE_PREFIX, account))
