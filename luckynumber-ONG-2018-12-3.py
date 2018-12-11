@@ -587,6 +587,7 @@ def _updateFillPaperFromRoundAndAwardVault(account, fillPaperFromRound, fillPape
         roundPaperBalance = getRoundPaperBalance(account, fillPaperFromRound)
         roundAssignPaperBalance = getRoundAssignPaperBalance(account, fillPaperFromRound)
         totalRoundPaperBalance = Add(roundPaperBalance, roundAssignPaperBalance)
+        Notify(["111Update", roundPaperBalance, roundAssignPaperBalance, totalRoundPaperBalance])
         if totalRoundPaperBalance != 0:
             if fillPaperBalanceNeedtoUpdateLeft >= totalRoundPaperBalance:
                 # delete round paper balance
@@ -602,6 +603,7 @@ def _updateFillPaperFromRoundAndAwardVault(account, fillPaperFromRound, fillPape
                 Delete(GetContext(), roundAssignPaperBalanceKey)
 
                 fillPaperBalanceNeedtoUpdateLeft = Sub(fillPaperBalanceNeedtoUpdateLeft, totalRoundPaperBalance)
+                Notify(["222Update", fillPaperFromRound, awardPercentageAtFill, awardVaultToBeAdd, fillPaperBalanceNeedtoUpdateLeft])
             else:
                 ###### deduct round paper balance first, then deduct the round assign paper balance #####
                 if fillPaperBalanceNeedtoUpdateLeft >= roundPaperBalance:
@@ -616,6 +618,7 @@ def _updateFillPaperFromRoundAndAwardVault(account, fillPaperFromRound, fillPape
                     # update round assign paper balance
                     roundAssignPaperBalance = Sub(roundAssignPaperBalance, fillPaperBalanceNeedtoUpdateLeft)
                     roundAssignPaperBalanceKey = concatKey(concatKey(ROUND_PREFIX, fillPaperFromRound), concatKey(ASSIGN_PAPER_BALANCE_ROUND_PREFIX, account))
+                    Notify(["333Update", fillPaperFromRound, awardPercentageAtFill, awardVaultToBeAdd, fillPaperBalanceNeedtoUpdateLeft, roundAssignPaperBalance])
                     if roundAssignPaperBalance > 0:
                         Put(GetContext(), roundAssignPaperBalanceKey, roundAssignPaperBalance)
                     else:
@@ -629,7 +632,7 @@ def _updateFillPaperFromRoundAndAwardVault(account, fillPaperFromRound, fillPape
                     # get award percentate at fill at fillPaperFromRound round
                     awardPercentageAtFill = getAwardAtFillPercentage(fillPaperFromRound)
                     awardVaultToBeAdd = Add(awardVaultToBeAdd, Div(Mul(Mul(fillPaperBalanceNeedtoUpdateLeft, ONGMagnitude), awardPercentageAtFill), 100))
-
+                    Notify(["333Update", fillPaperFromRound, awardPercentageAtFill, awardVaultToBeAdd])
                 # update fillPaperBalanceNeedtoUpdateLeft
                 fillPaperBalanceNeedtoUpdateLeft = 0
         fillPaperFromRound = Add(fillPaperFromRound, 1)
@@ -642,7 +645,7 @@ def _updateFillPaperFromRoundAndAwardVault(account, fillPaperFromRound, fillPape
     awardVaultKey = concatKey(concatKey(ROUND_PREFIX, currentRound), AWARD_VAULT_KEY)
     # update current round award vault
     Put(GetContext(), awardVaultKey, Add(awardVaultToBeAdd, getAwardVault(currentRound)))
-
+    Notify(["444Update", fillPaperFromRound, awardVaultToBeAdd])
     return awardVaultToBeAdd
 
 
@@ -1123,13 +1126,17 @@ def fillPaper(account, guessNumberList):
 
     # update fillPaperFromRound and the round paper balance
     fillPaperFromRound = getFillPaperFromRound(account)
-    if fillPaperFromRound == 0:
+    Notify(["111fillPaper", fillPaperFromRound])
+    if not fillPaperFromRound:
         paperBalanceBeforeUpgrade = getPaperBalanceBeforeUpgrade(account)
+        Notify(["222fillPaper", paperBalanceBeforeUpgrade, guessNumberLen])
         if paperBalanceBeforeUpgrade> guessNumberLen:
             Put(GetContext(), concatKey(PAPER_BALANCE_BEFORE_UPGRADE_PREFIX, account), Sub(paperBalanceBeforeUpgrade, guessNumberLen))
+
         else:
             Put(GetContext(), concatKey(PAPER_BALANCE_BEFORE_UPGRADE_PREFIX, account), -1)
             fillPaperBalanceNeedtoUpdate = Sub(guessNumberLen, paperBalanceBeforeUpgrade)
+            Notify(["333fillPaper",  fillPaperBalanceNeedtoUpdate])
             if fillPaperBalanceNeedtoUpdate > 0:
                 # update FillPaperFromRound and the account's round paper balance and awardVault
                 _updateFillPaperFromRoundAndAwardVault(account, 1, fillPaperBalanceNeedtoUpdate)
@@ -1139,6 +1146,7 @@ def fillPaper(account, guessNumberList):
 
     else:
         # update FillPaperFromRound and the account's round paper balance and awardVault
+        Notify(["444fillPaper", account, fillPaperFromRound, guessNumberLen])
         awardVaultToBeAddAtFill = _updateFillPaperFromRoundAndAwardVault(account, fillPaperFromRound, guessNumberLen)
 
         # update the awardVaultAtFill
