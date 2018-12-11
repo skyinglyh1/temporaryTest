@@ -213,14 +213,13 @@ ContractAddress = GetExecutingScriptHash()
 ONGAddress = bytearray(b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02')
 
 ######################## LuckyNumber account
-# Admin = ToScriptHash('AYqCVffRcbPkf1BVCYPJqqoiFTFmvwYKhG')
-######################## skyinglyh account
-Admin = ToScriptHash('AQf4Mzu1YJrhz9f3aRkkwSm9n3qhXGSh4p')
+Admin = ToScriptHash('AYqCVffRcbPkf1BVCYPJqqoiFTFmvwYKhG')
 
-# Beijing time 2018-11-23-15:45:00
+
+# Beijing time 2018/12/11 11:45:0
 # each round will last 3 minutes
-StartTime = 1542955500
-RoundDurationMinutes = 3
+StartTime = 1544499900
+RoundDurationMinutes = 180
 
 
 def Main(operation, args):
