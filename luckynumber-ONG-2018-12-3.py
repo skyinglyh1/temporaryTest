@@ -175,7 +175,8 @@ FILLED_PAPER_BALANCE_PREFIX = "U01"
 
 # ROUND_PREFIX + CURRET_ROUND_NUM_KEY + PAPER_BALANCE_ROUND_PREFIX + account -- store the bought paper balance of account in round
 PAPER_BALANCE_ROUND_PREFIX = "U02"
-
+# ROUND_PREFIX + CURRET_ROUND_NUM_KEY + ASSIGN_PAPER_BALANCE_ROUND_PREFIX + account -- store the assigned paper balance of account in round
+ASSIGN_PAPER_BALANCE_ROUND_PREFIX = "U03"
 ###################### Round i Public info ###########################
 # ROUND_PREFIX + CURRET_ROUND_NUM_KEY + AWARD_VAULT_KEY -- store the total award for the winner in roung i
 AWARD_VAULT_KEY = "R1"
@@ -271,11 +272,7 @@ def Main(operation, args):
         awardAtBuyPercentage = args[2]
         awardAtFillPercentage = args[3]
         return setHolderReferralAwardAtBuyAndFillPercentage(holderPercentage, referralPercentage, awardAtBuyPercentage, awardAtFillPercentage)
-    # if operation == "setCommissionPercentage":
-    #     if len(args) != 1:
-    #         return False
-    #     commissionPercentage = args[0]
-    #     return setCommissionPercentage(commissionPercentage)
+
     if operation == "withdrawGas":
         return withdrawGas()
     if operation == "withdrawCommission":
@@ -285,6 +282,11 @@ def Main(operation, args):
             return False
         ongAmount = args[0]
         return addOngToCurrentRoundAwardVault(ongAmount)
+    if operation == "addOngToPaperHolders":
+        if len(args) != 1:
+            return False
+        ongAmount = args[0]
+        return addOngToPaperHolders(ongAmount)
     if operation == "endCurrentRound":
         return endCurrentRound()
     if operation == "migrateContract":
@@ -371,10 +373,6 @@ def Main(operation, args):
             return False
         roundNum = args[0]
         return getParametersPercentage(roundNum)
-    # if operation == "getPureAwardExcludeCommissionPercentage":
-    #     return getPureAwardExcludeCommissionPercentage()
-    # if operation == "getCommissionPercentage":
-    #     return getCommissionPercentage()
     # User Info Start
     if operation == "getPaperBalance":
         if len(args) != 1:
@@ -480,7 +478,6 @@ def startNewRound():
     currentRound = getCurrentRound()
     nextRoundNum = Add(currentRound, 1)
 
-
     parametersList2 = getParametersPercentage(nextRoundNum)
     # if the Admin has not set the parameters for the nextRound before, next round will use the current round parametersList
     if Add(Add(Add(parametersList2[0], parametersList2[1]), parametersList2[2]), parametersList2[3]) != 95:
@@ -533,6 +530,11 @@ def assignPaper(account, paperAmount):
     # update account's profit per paper from value
     Put(GetContext(), concatKey(PROFIT_PER_PAPER_FROM_PREFIX, account), getProfitPerPaper())
 
+    # update account assigned paper balance
+    currentRound = getCurrentRound()
+    assignPaperBalanceKey = concatKey(concatKey(ROUND_PREFIX, currentRound), concatKey(ASSIGN_PAPER_BALANCE_ROUND_PREFIX, account))
+    Put(GetContext(), assignPaperBalanceKey, Add(getRoundAssignPaperBalance(account, currentRound), paperAmount))
+
     # update account paper balance
     balanceKey = concatKey(PAPER_BALANCE_PREFIX, account)
     Put(GetContext(), balanceKey, Add(paperAmount, getPaperBalance(account)))
@@ -564,6 +566,8 @@ def setHolderReferralAwardAtBuyAndFillPercentage(holderPercentage, referralPerce
     # the new percentage list will work in next round
     nextRound = Add(currentRound, 1)
     _updateParametersPercentage(nextRound, holderPercentage, referralPercentage, awardAtBuyPercentage, awardAtFillPercentage)
+    Notify(["setHolderReferralAwardAtBuyAndFillPercentage", nextRound, holderPercentage, referralPercentage, awardAtBuyPercentage, awardAtFillPercentage, GetTime()])
+
     return True
 
 def _updateParametersPercentage(roundNumber, holderPercentage, referralPercentage, awardAtBuyPercentage, awardAtFillPercentage):
@@ -573,7 +577,6 @@ def _updateParametersPercentage(roundNumber, holderPercentage, referralPercentag
     Put(GetContext(), concatKey(REFERRAL_PERCENTAGE_KEY, roundNumber), referralPercentage)
     Put(GetContext(), concatKey(AWARD_AT_BUY_PERCENTAGE_KEY, roundNumber), awardAtBuyPercentage)
     Put(GetContext(), concatKey(AWARD_AT_FILL_PERCENTAGE_KEY, roundNumber), awardAtFillPercentage)
-    Notify(["setHolderReferralAwardAtBuyAndFillPercentage", roundNumber, ["paperHolderPercentage", holderPercentage], ["referralPercentage", referralPercentage], ["awardAtBuyPercentage", awardAtBuyPercentage], ["awardAtFillPercentage", awardAtFillPercentage]])
     return True
 
 def _updateFillPaperFromRoundAndAwardVault(account, fillPaperFromRound, fillPaperBalanceNeedtoUpdate):
@@ -582,63 +585,65 @@ def _updateFillPaperFromRoundAndAwardVault(account, fillPaperFromRound, fillPape
     awardVaultToBeAdd = 0
     while fillPaperBalanceNeedtoUpdateLeft > 0:
         roundPaperBalance = getRoundPaperBalance(account, fillPaperFromRound)
-        if roundPaperBalance != 0:
-            if fillPaperBalanceNeedtoUpdateLeft >= roundPaperBalance:
+        roundAssignPaperBalance = getRoundAssignPaperBalance(account, fillPaperFromRound)
+        totalRoundPaperBalance = Add(roundPaperBalance, roundAssignPaperBalance)
+        if totalRoundPaperBalance != 0:
+            if fillPaperBalanceNeedtoUpdateLeft >= totalRoundPaperBalance:
                 # delete round paper balance
                 roundPaperBalanceKey = concatKey(concatKey(ROUND_PREFIX, fillPaperFromRound), concatKey(PAPER_BALANCE_ROUND_PREFIX, account))
                 Delete(GetContext(), roundPaperBalanceKey)
-                # # update the fillPaperFromRound
-                # fillPaperFromRoundKey = concatKey(FILL_PAPER_FROM_ROUND_PREFIX, account)
-                # Put(GetContext(), fillPaperFromRoundKey, fillPaperFromRound)
-                #
-                # # get award percentate at fill at fillPaperFromRound round
+
+                # get award percentate at fill at fillPaperFromRound round
                 awardPercentageAtFill = getAwardAtFillPercentage(fillPaperFromRound)
                 awardVaultToBeAdd = Add(awardVaultToBeAdd, Div(Mul(Mul(roundPaperBalance, ONGMagnitude), awardPercentageAtFill), 100))
-                # awardVaultKey = concatKey(concatKey(ROUND_PREFIX, currentRound), AWARD_VAULT_KEY)
-                # # update current round award vault
-                # Put(GetContext(), awardVaultKey, Add(awardVaultToBeAdd, getAwardVault(currentRound)))
 
-                fillPaperBalanceNeedtoUpdateLeft = Sub(fillPaperBalanceNeedtoUpdateLeft, roundPaperBalance)
+                # delete round assign paper balance
+                roundAssignPaperBalanceKey = concatKey(concatKey(ROUND_PREFIX, fillPaperFromRound), concatKey(ASSIGN_PAPER_BALANCE_ROUND_PREFIX, account))
+                Delete(GetContext(), roundAssignPaperBalanceKey)
+
+                fillPaperBalanceNeedtoUpdateLeft = Sub(fillPaperBalanceNeedtoUpdateLeft, totalRoundPaperBalance)
             else:
+                ###### deduct round paper balance first, then deduct the round assign paper balance #####
+                if fillPaperBalanceNeedtoUpdateLeft >= roundPaperBalance:
+                    # delete round paper balance
+                    roundPaperBalanceKey = concatKey(concatKey(ROUND_PREFIX, fillPaperFromRound), concatKey(PAPER_BALANCE_ROUND_PREFIX, account))
+                    Delete(GetContext(), roundPaperBalanceKey)
+                    # get award percentate at fill at fillPaperFromRound round
+                    awardPercentageAtFill = getAwardAtFillPercentage(fillPaperFromRound)
+                    awardVaultToBeAdd = Add(awardVaultToBeAdd, Div(Mul(Mul(roundPaperBalance, ONGMagnitude), awardPercentageAtFill), 100))
 
-                # update round paper balance
-                roundPaperBalanceKey = concatKey(concatKey(ROUND_PREFIX, fillPaperFromRound), concatKey(PAPER_BALANCE_ROUND_PREFIX, account))
-                Put(GetContext(), roundPaperBalanceKey, Sub(roundPaperBalance, fillPaperBalanceNeedtoUpdateLeft))
-                # # update the fillPaperFromRound
-                # fillPaperFromRoundKey = concatKey(FILL_PAPER_FROM_ROUND_PREFIX, account)
-                # Put(GetContext(), fillPaperFromRoundKey, fillPaperFromRound)
-                #
-                # # get award percentate at fill at fillPaperFromRound round
-                awardPercentageAtFill = getAwardAtFillPercentage(fillPaperFromRound)
-                awardVaultToBeAdd = Add(awardVaultToBeAdd, Div(Mul(Mul(fillPaperBalanceNeedtoUpdateLeft, ONGMagnitude), awardPercentageAtFill), 100))
-                # awardVaultKey = concatKey(concatKey(ROUND_PREFIX, currentRound), AWARD_VAULT_KEY)
-                # # update current round award vault
-                # Put(GetContext(), awardVaultKey, Add(awardVaultToBeAdd, getAwardVault(currentRound)))
+                    fillPaperBalanceNeedtoUpdateLeft = Sub(fillPaperBalanceNeedtoUpdateLeft, roundPaperBalance)
+                    # update round assign paper balance
+                    roundAssignPaperBalance = Sub(roundAssignPaperBalance, fillPaperBalanceNeedtoUpdateLeft)
+                    roundAssignPaperBalanceKey = concatKey(concatKey(ROUND_PREFIX, fillPaperFromRound), concatKey(ASSIGN_PAPER_BALANCE_ROUND_PREFIX, account))
+                    if roundAssignPaperBalance > 0:
+                        Put(GetContext(), roundAssignPaperBalanceKey, roundAssignPaperBalance)
+                    else:
+                        Delete(GetContext(), roundAssignPaperBalanceKey)
+                else:
 
+                    # update round paper balance
+                    roundPaperBalanceKey = concatKey(concatKey(ROUND_PREFIX, fillPaperFromRound), concatKey(PAPER_BALANCE_ROUND_PREFIX, account))
+                    Put(GetContext(), roundPaperBalanceKey, Sub(roundPaperBalance, fillPaperBalanceNeedtoUpdateLeft))
+
+                    # get award percentate at fill at fillPaperFromRound round
+                    awardPercentageAtFill = getAwardAtFillPercentage(fillPaperFromRound)
+                    awardVaultToBeAdd = Add(awardVaultToBeAdd, Div(Mul(Mul(fillPaperBalanceNeedtoUpdateLeft, ONGMagnitude), awardPercentageAtFill), 100))
+
+                # update fillPaperBalanceNeedtoUpdateLeft
                 fillPaperBalanceNeedtoUpdateLeft = 0
         fillPaperFromRound = Add(fillPaperFromRound, 1)
 
     # update the fillPaperFromRound
     fillPaperFromRoundKey = concatKey(FILL_PAPER_FROM_ROUND_PREFIX, account)
+    fillPaperFromRound = Sub(fillPaperFromRound, 1)
     Put(GetContext(), fillPaperFromRoundKey, fillPaperFromRound)
 
-    # # get award percentate at fill at fillPaperFromRound round
-    # awardPercentageAtFill = getAwardAtFillPercentage(fillPaperFromRound)
-    # awardVaultToBeAdd = Div(Mul(Mul(roundPaperBalance, ONGMagnitude), awardPercentageAtFill), 100)
     awardVaultKey = concatKey(concatKey(ROUND_PREFIX, currentRound), AWARD_VAULT_KEY)
     # update current round award vault
     Put(GetContext(), awardVaultKey, Add(awardVaultToBeAdd, getAwardVault(currentRound)))
 
     return awardVaultToBeAdd
-
-#
-# def setCommissionPercentage(commissionPercentage):
-#     Require(commissionPercentage >= 0)
-#     Require(commissionPercentage < 100)
-#     pureAwardExcludeCommissionPercentage = Sub(100, commissionPercentage)
-#     Put(GetContext(), PURE_AWARD_EXCLUDE_COMMISSION_FEE_KEY, pureAwardExcludeCommissionPercentage)
-#     Notify(["setCommissionPercentage", ["pureAwardExcludeCommissionPercentage", pureAwardExcludeCommissionPercentage], ["commissionPercentage", commissionPercentage]])
-#     return True
 
 
 def withdrawGas():
@@ -675,9 +680,28 @@ def addOngToCurrentRoundAwardVault(ongAmount):
         Notify(["AddToAwardVaultError", 1007])
         return False
     currentRound = getCurrentRound()
+
     awardVaultKey = concatKey(concatKey(ROUND_PREFIX, currentRound), AWARD_VAULT_KEY)
     Put(GetContext(), awardVaultKey, Add(ongAmount, getAwardVault(currentRound)))
+
+    # update total ong
+    Put(GetContext(), TOTAL_ONG_KEY, Add(getTotalONGAmount(), ongAmount))
+
     Notify(["AddToAwardVault", Admin, ongAmount])
+    return True
+
+def addOngToPaperHolders(ongAmount):
+    RequireWitness(Admin)
+    Require(transferONG(Admin, ContractAddress, ongAmount))
+    currentRound = getCurrentRound()
+
+    # update profit per paper
+    profitPerPaperToBeAdd = Div(Mul(ongAmount, MagnitudeForProfitPerPaper), getTotalPaper())
+    Put(GetContext(), PROFIT_PER_PAPER_KEY, Add(profitPerPaperToBeAdd, getProfitPerPaper()))
+    # update total ong
+    Put(GetContext(), TOTAL_ONG_KEY, Add(getTotalONGAmount(), ongAmount))
+
+    Notify(["AddToPaperHolders",currentRound, ongAmount, GetTime()])
     return True
 
 
@@ -1097,16 +1121,12 @@ def fillPaper(account, guessNumberList):
     # update dividend
     updateDividendBalance(account)
 
-    # update the paper balance of account  -- destroy the filled papers
-    Put(GetContext(), concatKey(PAPER_BALANCE_PREFIX, account), Sub(currentPaperBalance, guessNumberLen))
-
     # update fillPaperFromRound and the round paper balance
     fillPaperFromRound = getFillPaperFromRound(account)
     if fillPaperFromRound == 0:
         paperBalanceBeforeUpgrade = getPaperBalanceBeforeUpgrade(account)
         if paperBalanceBeforeUpgrade> guessNumberLen:
             Put(GetContext(), concatKey(PAPER_BALANCE_BEFORE_UPGRADE_PREFIX, account), Sub(paperBalanceBeforeUpgrade, guessNumberLen))
-
         else:
             Put(GetContext(), concatKey(PAPER_BALANCE_BEFORE_UPGRADE_PREFIX, account), -1)
             fillPaperBalanceNeedtoUpdate = Sub(guessNumberLen, paperBalanceBeforeUpgrade)
@@ -1121,15 +1141,11 @@ def fillPaper(account, guessNumberList):
         # update FillPaperFromRound and the account's round paper balance and awardVault
         awardVaultToBeAddAtFill = _updateFillPaperFromRoundAndAwardVault(account, fillPaperFromRound, guessNumberLen)
 
-
-        # # update award vault, AwardPercentage = 45
-        # # awardVaultToBeAdd = Div(Mul(ongAmount, AwardPercentage), 100)
-        # awardVaultToBeAddAtFill = Div(Mul(Mul(guessNumberLen, ONGMagnitude), getAwardAtFillPercentage(currentRound)), 100)
-        # awardVaultKey = concatKey(concatKey(ROUND_PREFIX, currentRound), AWARD_VAULT_KEY)
-        # Put(GetContext(), awardVaultKey, Add(awardVaultToBeAddAtFill, getAwardVault(currentRound)))
-
         # update the awardVaultAtFill
         Put(GetContext(), TOTAL_ONG_TO_BE_ADD_AT_FILL_KEY, Sub(getTotalONGToBeAddAtFill(), awardVaultToBeAddAtFill))
+
+    # update the paper balance of account  -- destroy the filled papers
+    Put(GetContext(), concatKey(PAPER_BALANCE_PREFIX, account), Sub(currentPaperBalance, guessNumberLen))
 
     # update total paper amount
     Put(GetContext(), TOTAL_PAPER_KEY, Sub(getTotalPaper(), guessNumberLen))
@@ -1143,8 +1159,6 @@ def fillPaper(account, guessNumberList):
     # update the filled paper amount in current round
     key = concatKey(concatKey(ROUND_PREFIX, currentRound), FILLED_PAPER_AMOUNT)
     Put(GetContext(), key, Add(guessNumberLen, getFilledPaperAmount(currentRound)))
-
-
 
     Notify(["fillPaper", account, guessNumberList, GetTime(), currentRound])
 
@@ -1238,12 +1252,6 @@ def getAwardAtFillPercentage(roundNumber):
 def getParametersPercentage(roundNumber):
     return [getHolderPercentage(roundNumber), getReferralPercentage(roundNumber), getAwardAtBuyPercentage(roundNumber), getAwardAtFillPercentage(roundNumber)]
 
-# def getPureAwardExcludeCommissionPercentage():
-#     return Get(GetContext(), PURE_AWARD_EXCLUDE_COMMISSION_FEE_KEY)
-
-# def getCommissionPercentage():
-#     return Sub(100, getPureAwardExcludeCommissionPercentage())
-
 def getTotalONGToBeAddAtFill():
     return Get(GetContext(), TOTAL_ONG_TO_BE_ADD_AT_FILL_KEY)
 
@@ -1288,6 +1296,10 @@ def getFilledPaperBalance(account, roundNum):
 def getRoundPaperBalance(account, roundNum):
     roundPaperBalanceKey = concatKey(concatKey(ROUND_PREFIX, roundNum), concatKey(PAPER_BALANCE_ROUND_PREFIX, account))
     return Get(GetContext(), roundPaperBalanceKey)
+
+def getRoundAssignPaperBalance(account, roundNum):
+    roundAssignPaperBalanceKey = concatKey(concatKey(ROUND_PREFIX, roundNum), concatKey(ASSIGN_PAPER_BALANCE_ROUND_PREFIX, account))
+    return Get(GetContext(), roundAssignPaperBalanceKey)
 ####################### User Info Start #####################
 
 
