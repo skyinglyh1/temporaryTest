@@ -1126,7 +1126,7 @@ def fillPaper(account, guessNumberList):
 
     # update fillPaperFromRound and the round paper balance
     fillPaperFromRound = getFillPaperFromRound(account)
-    Notify(["111fillPaper", fillPaperFromRound])
+    Notify(["111fillPaper", fillPaperFromRound, currentRound])
     if not fillPaperFromRound:
         paperBalanceBeforeUpgrade = getPaperBalanceBeforeUpgrade(account)
         Notify(["222fillPaper", paperBalanceBeforeUpgrade, guessNumberLen])
