@@ -578,7 +578,7 @@ def _updateParametersPercentage(roundNumber, holderPercentage, referralPercentag
     Put(GetContext(), concatKey(REFERRAL_PERCENTAGE_KEY, roundNumber), referralPercentage)
     Put(GetContext(), concatKey(AWARD_AT_BUY_PERCENTAGE_KEY, roundNumber), awardAtBuyPercentage)
     Put(GetContext(), concatKey(AWARD_AT_FILL_PERCENTAGE_KEY, roundNumber), awardAtFillPercentage)
-    Notify(["updateParametersPercentage", roundNumber, holderPercentage, referralPercentage, awardAtBuyPercentage, awardAtFillPercentage, GetTime()])
+    Notify(["setHolderReferralAwardAtBuyAndFillPercentage", roundNumber, holderPercentage, referralPercentage, awardAtBuyPercentage, awardAtFillPercentage, GetTime()])
     return True
 
 def _updateFillPaperFromRoundAndAwardVault(account, fillPaperFromRound, fillPaperBalanceNeedtoUpdate):
