@@ -972,7 +972,6 @@ def reinvest(account, paperAmount):
     # dividend1 = Div(Mul(ongAmount, PaperHolderPercentage), 100)
     referralPercentage = getReferralPercentage(currentRound)
     dividend1 = Div(Mul(ongAmount, Add(getHolderPercentage(currentRound), referralPercentage)), 100)
-
     # update referral balance
     referral = getReferral(account)
     referralAmount = 0
@@ -1005,7 +1004,7 @@ def reinvest(account, paperAmount):
     Put(GetContext(), roundPaperBalanceKey, Add(getRoundPaperBalance(account, currentRound), paperAmount))
 
     # update profitPerPaper
-    oldProfitPerPaper = Get(GetContext(), PROFIT_PER_PAPER_KEY)
+    oldProfitPerPaper = getProfitPerPaper()
     oldTotalPaperAmount = getTotalPaper()
 
     if oldTotalPaperAmount != 0:
@@ -1018,10 +1017,6 @@ def reinvest(account, paperAmount):
 
     updateDividendBalance(account)
 
-    # if not getPaperBalanceBeforeUpgrade(account):
-    #     # record the paper balance before contract upgrades
-    #     Put(GetContext(), concatKey(PAPER_BALANCE_BEFORE_UPGRADE_PREFIX, account), getPaperBalance(account))
-
     # update paper balance of account
     newPaperBalance = Get(GetContext(), concatKey(NEW_PAPER_BALANCE_PREFIX, account))
     Put(GetContext(), concatKey(NEW_PAPER_BALANCE_PREFIX, account), Add(paperAmount, newPaperBalance))
@@ -1030,6 +1025,9 @@ def reinvest(account, paperAmount):
     Put(GetContext(), TOTAL_PAPER_KEY, Add(paperAmount, getTotalPaper()))
 
     # update the account balances of dividend, award, referral
+    dividendBalance = getDividendBalance(account)
+    awardBalance = getAwardBalance(account)
+    referralBalance = getReferralBalance(account)
     ongAmountNeedToBeDeduct = ongAmount
     if ongAmountNeedToBeDeduct >= dividendBalance:
         ongAmountNeedToBeDeduct = Sub(ongAmountNeedToBeDeduct, dividendBalance)
