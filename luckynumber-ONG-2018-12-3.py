@@ -239,7 +239,7 @@ Admin = ToScriptHash('AQf4Mzu1YJrhz9f3aRkkwSm9n3qhXGSh4p')
 
 # Beijing time 2018-11-23-15:45:00
 # each round will last 3 minutes
-StartTime = 1542955500
+StartTime = 1544527260
 RoundDurationMinutes = 3
 
 
