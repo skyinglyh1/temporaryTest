@@ -374,6 +374,8 @@ def Main(operation, args):
             return False
         roundNum = args[0]
         return getParametersPercentage(roundNum)
+    if operation == "getTotalONGToBeAddAtFill":
+        return getTotalONGToBeAddAtFill()
     # User Info Start
     if operation == "getPaperBalance":
         if len(args) != 1:
@@ -697,7 +699,12 @@ def addOngToCurrentRoundAwardVault(ongAmount):
 
 def addOngToPaperHolders(ongAmount):
     RequireWitness(Admin)
-    Require(transferONG(Admin, ContractAddress, ongAmount))
+    # Require(transferONG(Admin, ContractAddress, ongAmount))
+    res = transferONG(Admin, ContractAddress, ongAmount)
+    if res == False:
+        # , "Add ong to paper holders failed!"
+        Notify(["AddToPaperHoldersError", 1008])
+        return False
     currentRound = getCurrentRound()
 
     # update profit per paper
@@ -1131,7 +1138,8 @@ def fillPaper(account, guessNumberList):
     # update fillPaperFromRound and the round paper balance
     fillPaperFromRound = getFillPaperFromRound(account)
     Notify(["111fillPaper", fillPaperFromRound, currentRound])
-    if fillPaperFromRound == 0:
+    oldPaperBalanceKey = concatKey(PAPER_BALANCE_PREFIX, account)
+    if fillPaperFromRound == 0 and oldPaperBalanceKey > 0:
         oldPaperBalanceKey  = concatKey(PAPER_BALANCE_PREFIX, account)
         oldPaperBalance = Get(GetContext(), oldPaperBalanceKey)
         Notify(["222fillPaper", oldPaperBalance, guessNumberLen])
@@ -1192,8 +1200,17 @@ def withdraw(account):
     referralBalance = getReferralBalance(account)
     assetToBeWithdrawn = Add(Add(dividendBalance, awardBalance), referralBalance)
 
-    Require(assetToBeWithdrawn > 0)
-    Require(transferONGFromContact(account, assetToBeWithdrawn))
+    # Require(assetToBeWithdrawn > 0)
+    if assetToBeWithdrawn <= 0:
+        # Not enought ONG to be withdrawn
+        Notify(["withdrawONGError", 1008])
+        return False
+    # Require(transferONGFromContact(account, assetToBeWithdrawn))
+    res = transferONGFromContact(account, assetToBeWithdrawn)
+    if res == False:
+        # please withdraw ONG later, or try again
+        Notify(["transerONGError", 1009])
+        return False
 
     Delete(GetContext(), concatKey(TOTAL_DIVIDEND_OF_PREFIX, account))
     Delete(GetContext(), concatKey(AWARD_BALANCE_OF_PREFFIX, account))
