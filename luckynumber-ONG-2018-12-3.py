@@ -591,7 +591,7 @@ def _updateFillPaperFromRoundAndAwardVault(account, fillPaperFromRound, fillPape
         roundPaperBalance = getRoundPaperBalance(account, fillPaperFromRound)
         roundAssignPaperBalance = getRoundAssignPaperBalance(account, fillPaperFromRound)
         totalRoundPaperBalance = Add(roundPaperBalance, roundAssignPaperBalance)
-        Notify(["111Update", roundPaperBalance, roundAssignPaperBalance, totalRoundPaperBalance])
+        Notify(["111Update", fillPaperFromRound, roundPaperBalance, roundAssignPaperBalance, totalRoundPaperBalance])
         if totalRoundPaperBalance != 0:
             if fillPaperBalanceNeedtoUpdateLeft >= totalRoundPaperBalance:
                 # delete round paper balance
@@ -1138,8 +1138,10 @@ def fillPaper(account, guessNumberList):
     # update fillPaperFromRound and the round paper balance
     fillPaperFromRound = getFillPaperFromRound(account)
     Notify(["111fillPaper", fillPaperFromRound, currentRound])
-    oldPaperBalanceKey = concatKey(PAPER_BALANCE_PREFIX, account)
-    if fillPaperFromRound == 0 and oldPaperBalanceKey > 0:
+    # oldPaperBalanceKey = concatKey(PAPER_BALANCE_PREFIX, account)
+    # oldPaperBalance = Get(GetContext(), oldPaperBalanceKey)
+    awardVaultToBeAddAtFill = 0
+    if fillPaperFromRound == 0:
         oldPaperBalanceKey  = concatKey(PAPER_BALANCE_PREFIX, account)
         oldPaperBalance = Get(GetContext(), oldPaperBalanceKey)
         Notify(["222fillPaper", oldPaperBalance, guessNumberLen])
@@ -1152,7 +1154,12 @@ def fillPaper(account, guessNumberList):
             Notify(["333fillPaper", fillPaperBalanceNeedtoUpdate])
             if fillPaperBalanceNeedtoUpdate > 0:
                 # update FillPaperFromRound and the account's round paper balance and awardVault
-                _updateFillPaperFromRoundAndAwardVault(account, 1, fillPaperBalanceNeedtoUpdate)
+                awardVaultToBeAddAtFill = _updateFillPaperFromRoundAndAwardVault(account, 1, fillPaperBalanceNeedtoUpdate)
+                # update the awardVaultAtFill
+                Put(GetContext(), TOTAL_ONG_TO_BE_ADD_AT_FILL_KEY, Sub(getTotalONGToBeAddAtFill(), awardVaultToBeAddAtFill))
+
+                # update the paper balance of account  -- destroy the filled papers
+                Put(GetContext(), concatKey(NEW_PAPER_BALANCE_PREFIX, account), Sub(currentPaperBalance, guessNumberLen))
             else:
                 # update FillPaperFromRound and the account's round paper balance
                 Put(GetContext(), concatKey(FILL_PAPER_FROM_ROUND_PREFIX, account), 1)
