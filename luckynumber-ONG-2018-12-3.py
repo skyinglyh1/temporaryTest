@@ -233,9 +233,9 @@ ContractAddress = GetExecutingScriptHash()
 ONGAddress = bytearray(b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02')
 ONGMagnitude = 1000000000
 ######################## LuckyNumber account
-# Admin = ToScriptHash('AYqCVffRcbPkf1BVCYPJqqoiFTFmvwYKhG')
+Admin = ToScriptHash('AYqCVffRcbPkf1BVCYPJqqoiFTFmvwYKhG')
 ######################## skyinglyh account
-Admin = ToScriptHash('AQf4Mzu1YJrhz9f3aRkkwSm9n3qhXGSh4p')
+# Admin = ToScriptHash('AQf4Mzu1YJrhz9f3aRkkwSm9n3qhXGSh4p')
 
 # Beijing time 2018-11-23-15:45:00
 # each round will last 3 minutes
@@ -560,6 +560,7 @@ def setHolderReferralAwardAtBuyAndFillPercentage(holderPercentage, referralPerce
     Require(referralPercentage > 0)
     Require(awardAtBuyPercentage > 0)
     Require(awardAtFillPercentage > 0)
+
     totalPercentage = Add(Add(Add(holderPercentage, referralPercentage), awardAtBuyPercentage), awardAtFillPercentage)
     Require(totalPercentage == 95)
 
@@ -577,7 +578,7 @@ def _updateParametersPercentage(roundNumber, holderPercentage, referralPercentag
     Put(GetContext(), concatKey(REFERRAL_PERCENTAGE_KEY, roundNumber), referralPercentage)
     Put(GetContext(), concatKey(AWARD_AT_BUY_PERCENTAGE_KEY, roundNumber), awardAtBuyPercentage)
     Put(GetContext(), concatKey(AWARD_AT_FILL_PERCENTAGE_KEY, roundNumber), awardAtFillPercentage)
-    Notify(["setHolderReferralAwardAtBuyAndFillPercentage", roundNumber, holderPercentage, referralPercentage, awardAtBuyPercentage, awardAtFillPercentage, GetTime()])
+    Notify(["updateParametersPercentage", roundNumber, holderPercentage, referralPercentage, awardAtBuyPercentage, awardAtFillPercentage, GetTime()])
     return True
 
 def _updateFillPaperFromRoundAndAwardVault(account, fillPaperFromRound, fillPaperBalanceNeedtoUpdate):
