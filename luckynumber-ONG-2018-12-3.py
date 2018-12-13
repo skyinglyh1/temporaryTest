@@ -683,7 +683,7 @@ def addOngToCurrentRoundAwardVault(ongAmount):
     RequireWitness(Admin)
     res = transferONG(Admin, ContractAddress, ongAmount)
     if res == False:
-        # , "Add ong to current round award vault failed!"
+        # "Add ong to current round award vault failed!"
         Notify(["AddToAwardVaultError", 1007])
         return False
     currentRound = getCurrentRound()
@@ -694,7 +694,7 @@ def addOngToCurrentRoundAwardVault(ongAmount):
     # update total ong
     Put(GetContext(), TOTAL_ONG_KEY, Add(getTotalONGAmount(), ongAmount))
 
-    Notify(["AddToAwardVault", Admin, ongAmount])
+    Notify(["AddToAwardVault", currentRound, ongAmount, GetTime()])
     return True
 
 def addOngToPaperHolders(ongAmount):
